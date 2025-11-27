@@ -1,183 +1,168 @@
-# Uniswap v4 Hook Template
+🧩 TomoLabs – FeeToSplitter Hook
+A Revenue-Sharing Uniswap v4 Hook for Automated Fee Splitting
 
-**A template for writing Uniswap v4 Hooks 🦄**
+This repository contains two smart contracts:
 
-### Get Started
+FeeSplitter.sol → Splits any ERC-20 token amount among recipients based on percentage shares.
 
-This template provides a starting point for writing Uniswap v4 Hooks, including a simple example and preconfigured test environment. Start by creating a new repository using the "Use this template" button at the top right of this page. Alternatively you can also click this link:
+FeeToSplitterHook.sol → A Uniswap v4 Hook that intercepts swap fees and automatically routes them to the FeeSplitter contract.
 
-[![Use this Template](https://img.shields.io/badge/Use%20this%20Template-101010?style=for-the-badge&logo=github)](https://github.com/uniswapfoundation/v4-template/generate)
+Together, they implement creator-aligned liquidity, where fees earned in a Uniswap pool are immediately distributed to predefined recipients.
 
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
+🚀 Features
+✔ Automatic fee sharing
 
-<details>
-<summary>Updating to v4-template:latest</summary>
+Every time a swap occurs and fees are collected, the hook calls FeeSplitter.distribute().
 
-This template is actively maintained -- you can update the v4 dependencies, scripts, and helpers:
+✔ Basis-Point (BPS) share configuration
 
-```bash
-git remote add template https://github.com/uniswapfoundation/v4-template
-git fetch template
-git merge template/main <BRANCH> --allow-unrelated-histories
-```
+Total shares must always equal 10000 (100%).
 
-</details>
+✔ Flexible recipients
 
-### Requirements
+You can specify any number of recipients (creators, LP managers, DAO multisigs, etc.).
 
-This template is designed to work with Foundry (stable). If you are using Foundry Nightly, you may encounter compatibility issues. You can update your Foundry installation to the latest stable version by running:
+✔ Fully compatible with Uniswap v4 Hooks
 
-```
-foundryup
-```
+Implements the exact required 14-permission structure.
 
-To set up the project, run the following commands in your terminal to install dependencies and run the tests:
+📦 Contracts
+1. FeeSplitter.sol
 
-```
+A lightweight contract that splits incoming tokens according to pre-configured BPS percentages.
+
+Constructor
+constructor(address[] memory _recipients, uint256[] memory _shares);
+
+distribute()
+function distribute(address token, uint256 amount) external;
+
+
+This function transfers:
+
+amount * share[i] / 10000
+
+
+to each recipient.
+
+2. FeeToSplitterHook.sol
+
+A Uniswap v4 Hook that triggers after swaps (afterSwap).
+It detects positive fee deltas and passes them to FeeSplitter.
+
+Key Responsibilities:
+
+Reads swap deltas
+
+Extracts token-0 delta
+
+Calls FeeSplitter to distribute fees
+
+Only enables required Uniswap hook permissions
+
+🗂 Directory Structure
+src/
+ ├── FeeSplitter.sol
+ └── FeeToSplitterHook.sol
+
+script/
+ └── DeployFeeHook.s.sol
+
+⚙️ Installation
+git clone https://github.com/TomoLabs/Hooks.git
+cd Hooks
 forge install
-forge test
-```
+forge build
 
-### Local Development
+🔧 Configuration
 
-Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/) locally. Scripts are available in the `script/` directory, which can be used to deploy hooks, create pools, provide liquidity and swap tokens. The scripts support both local `anvil` environment as well as running them directly on a production network.
+You can adjust the following in the deploy script:
 
-### Executing locally with using **Anvil**:
+Pool Manager Address
+0xA7B8e01F655C72F2fCf7b0b8F9E0633D5c86B8Dc
 
-1. Start Anvil (or fork a specific chain using anvil):
+Fee Token
+0x00000000000000000000000000000000000000AA
 
-```bash
-anvil
-```
+Recipients
+0x27eB14742eC8Fe485492A5B553ec9D13Db5F0Af4
+0x0000000000000000000000000000000000000022
 
-or
+Shares
+6000 = 60%
+4000 = 40%
 
-```bash
-anvil --fork-url <YOUR_RPC_URL>
-```
 
-2. Execute scripts:
+These are configured inside:
 
-```bash
-forge script script/00_DeployHook.s.sol \
-    --rpc-url http://localhost:8545 \
-    --private-key <PRIVATE_KEY> \
-    --broadcast
-```
+script/DeployFeeHook.s.sol
 
-### Using **RPC URLs** (actual transactions):
+🚀 Deployment
 
-:::info
-It is best to not store your private key even in .env or enter it directly in the command line. Instead use the `--account` flag to select your private key from your keystore.
-:::
+Run:
 
-### Follow these steps if you have not stored your private key in the keystore:
+forge script script/DeployFeeHook.s.sol --rpc-url <RPC> --broadcast -vvvv
 
-<details>
 
-1. Add your private key to the keystore:
+Example:
 
-```bash
-cast wallet import <SET_A_NAME_FOR_KEY> --interactive
-```
+forge script script/DeployFeeHook.s.sol --rpc-url https://sepolia.infura.io/v3/<key> --broadcast -vvvv
 
-2. You will prompted to enter your private key and set a password, fill and press enter:
 
-```
-Enter private key: <YOUR_PRIVATE_KEY>
-Enter keystore password: <SET_NEW_PASSWORD>
-```
+This deploys:
 
-You should see this:
+FeeSplitter
 
-```
-`<YOUR_WALLET_PRIVATE_KEY_NAME>` keystore was saved successfully. Address: <YOUR_WALLET_ADDRESS>
-```
+FeeToSplitterHook
 
-::: warning
-Use `history -c` to clear your command history.
-:::
+🧠 How It Works
+Step-by-step swap lifecycle:
 
-</details>
+User swaps tokens in a Uniswap v4 pool
 
-1. Execute scripts:
+The hook receives the delta:
 
-```bash
-forge script script/00_DeployHook.s.sol \
-    --rpc-url <YOUR_RPC_URL> \
-    --account <YOUR_WALLET_PRIVATE_KEY_NAME> \
-    --sender <YOUR_WALLET_ADDRESS> \
-    --broadcast
-```
+delta.amount0()
 
-You will prompted to enter your wallet password, fill and press enter:
 
-```
-Enter keystore password: <YOUR_PASSWORD>
-```
+If amount0 > 0, meaning fees were collected:
+→ the hook calls FeeSplitter:
 
-### Key Modifications to note:
+splitter.distribute(feeToken, uint256(int256(amount0)));
 
-1. Update the `token0` and `token1` addresses in the `BaseScript.sol` file to match the tokens you want to use in the network of your choice for sepolia and mainnet deployments.
-2. Update the `token0Amount` and `token1Amount` in the `CreatePoolAndAddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-3. Update the `token0Amount` and `token1Amount` in the `AddLiquidity.s.sol` file to match the amount of tokens you want to provide liquidity with.
-4. Update the `amountIn` and `amountOutMin` in the `Swap.s.sol` file to match the amount of tokens you want to swap.
 
-### Verifying the hook contract
+FeeSplitter divides fees among recipients based on basis-points (BPS)
 
-```bash
-forge verify-contract \
-  --rpc-url <URL> \
-  --chain <CHAIN_NAME_OR_ID> \
-  # Generally etherscan
-  --verifier <Verification_Provider> \
-  # Use --etherscan-api-key <ETHERSCAN_API_KEY> if you are using etherscan
-  --verifier-api-key <Verification_Provider_API_KEY> \
-  --constructor-args <ABI_ENCODED_ARGS> \
-  --num-of-optimizations <OPTIMIZER_RUNS> \
-  <Contract_Address> \
-  <path/to/Contract.sol:ContractName>
-  --watch
-```
+🔍 Example Log Event
 
-### Troubleshooting
+When fees are distributed:
 
-<details>
+FeeDistributed(
+    token = 0x00000000000000000000000000000000000000AA,
+    totalAmount = 12345
+)
 
-#### Permission Denied
+🧪 Testing (Optional)
 
-When installing dependencies with `forge install`, Github may throw a `Permission Denied` error
+Run:
 
-Typically caused by missing Github SSH keys, and can be resolved by following the steps [here](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+forge test -vvvv
 
-Or [adding the keys to your ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent), if you have already uploaded SSH keys
 
-#### Anvil fork test failures
+You can write tests to check:
 
-Some versions of Foundry may limit contract code size to ~25kb, which could prevent local tests to fail. You can resolve this by setting the `code-size-limit` flag
+Fee splitting
 
-```
-anvil --code-size-limit 40000
-```
+Swap callbacks
 
-#### Hook deployment failures
+Permission matrix
 
-Hook deployment failures are caused by incorrect flags or incorrect salt mining
+Reverts when shares ≠ 10000
 
-1. Verify the flags are in agreement:
-   - `getHookCalls()` returns the correct flags
-   - `flags` provided to `HookMiner.find(...)`
-2. Verify salt mining is correct:
-   - In **forge test**: the _deployer_ for: `new Hook{salt: salt}(...)` and `HookMiner.find(deployer, ...)` are the same. This will be `address(this)`. If using `vm.prank`, the deployer will be the pranking address
-   - In **forge script**: the deployer must be the CREATE2 Proxy: `0x4e59b44847b379578588920cA78FbF26c0B4956C`
-     - If anvil does not have the CREATE2 deployer, your foundry may be out of date. You can update it with `foundryup`
+📄 License
 
-</details>
+MIT
 
-### Additional Resources
+🏷 Credits
 
-- [Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
-- [v4-periphery](https://github.com/uniswap/v4-periphery)
-- [v4-core](https://github.com/uniswap/v4-core)
-- [v4-by-example](https://v4-by-example.org)
+Built by TomoLabs — creator-aligned Web3 liquidity infrastructure.
