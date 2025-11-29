@@ -27,13 +27,10 @@ contract FeeToSplitterHook is BaseHook {
         pure
         returns (bytes32 salt, bytes memory deployData)
     {
-        // The salt must be unique to this hook type.
+        
         bytes32 arbitrarySalt = keccak256("MY_FEE_SPLITTER_HOOK_V1");
 
-        // deployData should contain your constructor arguments, abi-encoded.
-        // For simplicity in a single-salt deployment, using the salt as deployData sometimes works.
-        // However, the correct way is to encode the constructor arguments:
-        // This assumes your constructor arguments are (_poolManager, _feeToken, _splitter)
+        
         bytes memory data = abi.encode(
             address(0xA7B8e01F655C72F2fCf7b0b8F9e0633D5c86B8Dc), // PoolManager address from script
             address(0x00000000000000000000000000000000000000AA), // Token address from script
@@ -84,3 +81,4 @@ contract FeeToSplitterHook is BaseHook {
         return (BaseHook.afterSwap.selector, 0);
     }
 }
+
