@@ -14,7 +14,6 @@ contract DeployFeeHook is Script {
     uint256[] public shares;
     
     // Standard CREATE2 deployer address on many EVM chains.
-    // **Verify this address for your specific deployment network.**
     address constant CREATE2_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
     function run() external {
@@ -74,4 +73,5 @@ contract DeployFeeHook is Script {
 
         vm.stopBroadcast();
     }
+
 }
